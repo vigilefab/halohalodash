@@ -1,0 +1,12 @@
+name: halohalodash
+title: halohalodash
+username: vmfabella
+account: vmfabella
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15155023
+bundleId: 10726370
+url: https://vmfabella.shinyapps.io/halohalodash/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
