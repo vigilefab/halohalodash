@@ -1,17 +1,27 @@
 
 function(input, output, session) {
- 
+  
+  # Declare a Theme
+  custom_theme <- bs_theme(version = 5, bootswatch = "minty")
+  custom_theme <- bs_theme_update(custom_theme, primary = "#D45855", secondary = "#0073C2", 
+                                  success = "#EFC000", warning = "#56cc9d")
+
+    # Load our custom theme from the custom.scss file
+  custom_theme <- bs_add_rules(custom_theme, sass::sass_file("custom.scss"))
+  
+    # set theme
+  session$setCurrentTheme(custom_theme)
 
   # data: country subset ----
   cntry_subset <- reactive({
     req(input$selected_cntry)
     if (input$selected_cntry == "Worldwide") {
       maillist %>% 
-        filter(as.Date(Timestamp) >= input$date[[1]], as.Date(Timestamp) <= input$date[[2]]) %>%
+#        filter(as.Date(Timestamp) >= input$date[[1]], as.Date(Timestamp) <= input$date[[2]]) %>%
         mutate(area = Land2)
     } else {
         filter(maillist, Land2 %in% input$selected_cntry) %>%
-        filter(as.Date(Timestamp) >= input$date[[1]], as.Date(Timestamp) <= input$date[[2]]) %>%
+#        filter(as.Date(Timestamp) >= input$date[[1]], as.Date(Timestamp) <= input$date[[2]]) %>%
         mutate(area = region)
       }
   })
@@ -25,39 +35,15 @@ function(input, output, session) {
     req(input$selected_cntry)
     if (input$selected_cntry == "Worldwide") {
       monthly %>% 
-        filter(ymd(paste(month, "1")) >= input$date[[1]], ymd(paste(month, "1")) <= input$date[[2]]) %>%
+      # filter(ymd(paste(month, "1")) >= input$date[[1]], ymd(paste(month, "1")) <= input$date[[2]]) %>%
         arrange(month)
     } else {
       monthly %>% 
-        filter(ymd(paste(month, "1")) >= input$date[[1]], ymd(paste(month, "1")) <= input$date[[2]]) %>% 
+        # filter(ymd(paste(month, "1")) >= input$date[[1]], ymd(paste(month, "1")) <= input$date[[2]]) %>% 
         filter(Land2 %in% input$selected_cntry) %>%
         arrange(month)
       }
   })
-
-  
-  
-  
-  # data: zoom settings ----
-  zoom_setting <- reactive({
-    req(input$selected_cntry)
-    if (input$selected_cntry == "Worldwide") {
-      c(51.1642, 
-        10.4541, 
-        2)
-    } else {
-      c(cntry_subset()$center_lat[1], 
-        cntry_subset()$center_lon[1], 
-        cntry_subset()$center_zoom[1])
-    }
-  })
-  
-  
-  # data: radius ----
-  rad <- reactive({
-    (subset(cntry_subset(), Postleitzahl != "")$tenure)/365
-    })
-  pal <- colorNumeric(palette = c("#F4BC4Eff", "#326EB6ff"), domain = sort(unique(maillist$tenure/365)))
   
   
   
@@ -67,10 +53,10 @@ function(input, output, session) {
     if (input$selected_cntry == "Worldwide") {
       bezug %>% group_by(word) %>% 
         summarise(wordcount = sum(wordcount)) %>% arrange(desc(wordcount))
-      }  else  {
-        filter(bezug, Land2 %in% input$selected_cntry) %>% group_by(word) %>% 
-          summarise(wordcount = sum(wordcount)) %>% arrange(desc(wordcount))
-      }
+    }  else  {
+      filter(bezug, Land2 %in% input$selected_cntry) %>% group_by(word) %>% 
+        summarise(wordcount = sum(wordcount)) %>% arrange(desc(wordcount))
+    }
   }) 
   
   
@@ -86,6 +72,30 @@ function(input, output, session) {
         summarise(wordcount = sum(wordcount)) %>% arrange(desc(wordcount))
     }
   }) 
+  
+  
+  
+  
+  # data: zoom settings ----
+  zoom_setting <- reactive({
+    req(input$selected_cntry)
+    if (input$selected_cntry == "Worldwide") {
+      c(51.1642, 
+        10.4541, 
+        4)
+    } else {
+      c(cntry_subset()$center_lat[1], 
+        cntry_subset()$center_lon[1], 
+        cntry_subset()$center_zoom[1])
+    }
+  })
+  
+  
+  # data: radius ----
+  rad <- reactive({
+    (subset(cntry_subset(), Postleitzahl != "")$tenure)/365
+    })
+  pal <- colorNumeric(palette = c("#F4BC4Eff", "#326EB6ff"), domain = sort(unique(maillist$tenure/365)))
 
   
   
@@ -96,8 +106,24 @@ function(input, output, session) {
   
   # stat: roots ----
   output$roots <- renderText({
-    t <- cntry_subset()$`Hast du philippinische Wurzeln?` %>% na.omit %>% table
+    t <- cntry_subset() %>% filter(`Hast du philippinische Wurzeln?` != "") %>% ungroup %>%
+      select(`Hast du philippinische Wurzeln?`) %>% table
     percent(t["Ja"]/sum(t))
+  })
+  
+  # stat: # countries ----
+  output$cntry_count <- renderText({
+    cntry_subset()$Land %>% unique %>% length
+  })
+  
+  
+  # stat: new mems in latest year ----
+  output$latest_yr <- renderText({
+    max(year(maillist$Timestamp))
+  })
+  
+  output$latest_newmems <- renderText({
+    cntry_subset() %>% filter(year(Timestamp) == max(year(maillist$Timestamp))) %>% nrow
   })
   
   
@@ -124,50 +150,7 @@ function(input, output, session) {
         )
     })
     
-    # output$bar <- renderPlot({
-    #   byctry <- maillist %>% 
-    #     group_by(Land2) %>% 
-    #     summarise(members = n())
-    #   
-    #   ggplot(data = byctry, aes(x = Land2, y = members)) +
-    #     geom_bar(stat = "identity") +
-    #     theme_minimal()
-    # })
-    # 
-    # output$newmems <- renderPlotly ({
-    #   cumulative <- cntry_subset() %>%
-    #     mutate(month = format(Timestamp, "%Y-%m")) %>%
-    #     group_by(month) %>%
-    #     summarise(membr = n()) %>%  # must complete missing months
-    #     arrange(month) %>%
-    #     mutate(cumsum = cumsum(membr))
-    # 
-    #  plot_ly(cumulative, type = "bar", color = I("#D45855ff")) %>%
-    #  #  plot_ly(cumulative, type = "bar", color = ~Land2) %>%
-    #     add_trace(x = ~month, y = ~membr, name = 'New members') %>%
-    #     layout(showlegend = F) %>%
-    #     layout(title = "",
-    #            yaxis = list(title = 'New members'),
-    #            xaxis = list(title = ''))
-    # })
-    # 
-    # output$cumts <- renderPlotly ({
-    #   cumulative <- cntry_subset() %>%
-    #     mutate(month = format(Timestamp, "%Y-%m")) %>%
-    #     filter(!is.na(month)) %>% 
-    #     group_by(month) %>%
-    #     summarise(membr = n()) %>%  # must complete missing months
-    #     arrange(month) %>%
-    #     mutate(cumsum = cumsum(membr))
-    #   
-    #   plot_ly(cumulative, type = 'scatter', mode = 'lines', color = I("#F4BC4Eff"), fill = "tozeroy") %>%
-    #   add_trace(x = ~month, y = ~cumsum, name = 'Members') %>%
-    #   layout(showlegend = F) %>%
-    #   layout(title = "",
-    #          yaxis = list(title = 'Cumulative number of members'),
-    #          xaxis = list(title = ''))
-    # })
-    
+
     
     # chart: cumulative time series ----
     output$hc_cumts <- renderHighchart({
@@ -177,11 +160,14 @@ function(input, output, session) {
       arrange(month) %>%
       mutate(cumsum = cumsum(membr))
 
-      hchart(cumulative, "line",
-             hcaes(x = month, y = cumsum), color = "#F4BC4Eff", name = "Number of members") %>%
-        hc_title(text = "Cumulative network growth", align = "left") %>%
+      hchart(cumulative, "area",
+             hcaes(x = month, y = cumsum), name = "Number of members") %>%
+        hc_plotOptions(
+          area = list(fillOpacity = 0.5) #, fillColor = "#F4BC4Eff", lineColor = "#F4BC4Eff")
+        )  %>%
         hc_yAxis(title = list(enabled = FALSE)) %>%
-        hc_xAxis(title = list(enabled = FALSE)) 
+        hc_xAxis(title = list(enabled = FALSE),
+                 labels = list(rotation = 90)) 
     })
     
     
@@ -192,10 +178,14 @@ function(input, output, session) {
            hcaes(x = month, y = membr, group = Land2),
            stacking = "normal"
            ) %>%
-        hc_colors(c("#D45855ff", "#0073C2FF", "#EFC000FF", "#656364")) %>%
-        hc_title(text = "New members per month", align = "left")%>%
+        hc_plotOptions(
+          series = list(borderWidth = 0, groupPadding = 0.07, pointPadding= 0)
+          )  %>%
+        hc_colors(c("#D45855", "#0073c2", "#fcba03", "#656364")) %>%
+        #hc_title(text = "New members per month", align = "left")%>%
         hc_yAxis(title = list(enabled = FALSE)) %>%
-        hc_xAxis(title = list(enabled = FALSE)) 
+        hc_xAxis(title = list(enabled = FALSE),
+                 labels = list(enabled = FALSE)) 
     })
     
     
@@ -203,8 +193,9 @@ function(input, output, session) {
     # chart: donut ----
     output$hc_donut <- renderHighchart({
       df <- cntry_subset() %>%
-      group_by(area) %>%
-      summarise(membr = dplyr::n())
+        group_by(area) %>%
+        filter(Postleitzahl != "") %>%
+        summarise(membr = dplyr::n())
       
       hchart(df,
       "pie", hcaes(x = area, y = membr), 
@@ -216,12 +207,11 @@ function(input, output, session) {
              
         hc_plotOptions(
           innersize="50%", 
-          startAngle=90, 
-          endAngle=90,
+          startAngle=180, 
           center=list('50%', '75%'),
           size='110%'
-          )  %>%
-        hc_title(text = "Member distribution by area", align = "left") 
+          )  #%>%
+        #hc_title(text = "Member distribution by area", align = "left") 
     })
     
     
@@ -230,54 +220,21 @@ function(input, output, session) {
     # chart: wordcloud ----
 
     output$wordcloud <- renderWordcloud2 ({
-    pal <- rep(c("#D45855ff", "#0073C2FF", "#EFC000FF", "#656364"), 8)
+    pal <- rep(c("#D45855", "#0073C2", "#EFC000", "#656364"), 8)
     df <- if (input$word == "bezug") bezug_subset() else motivation_subset()
-    df <- head(df, 50)
+    df <- df %>% arrange(desc(wordcount)) %>% head(50)  %>% 
+      mutate(wordcount = rescale(wordcount, to = c(5,60)))
     
     my_wordcloud = wordcloud2a(
       df,
-      color = rep_len(pal,
-                      nrow(df)))  
+      color = rep_len(pal,nrow(df)),
+      size = .5)  
     })
   
-    # output$gg_bezug <- renderPlot ({
-    #   pal <- rep(c("#D45855ff", "#0073C2FF", "#EFC000FF", "#656364"), 8)
-    #   df <- head(bezug_subset(), 30)
-    #   p <- ggplot(df, 
-    #               aes(label = word, size = wordcount, 
-    #                   color = factor(sample.int(10, nrow(df), replace = TRUE)))) +
-    #     geom_text_wordcloud() +
-    #     scale_size_area(max_size = 20)  +
-    #     scale_color_manual(values = head(pal,nrow(df))) +
-    #     labs(title = "What connects you to the Philippines?") +
-    #     theme_classic() +
-    #     theme(plot.title = element_text(size = 18))
-    #   p
-    #   #ggiraph(ggobj = p, width_svg = 7, height_svg = 7)
-    # })
-    # 
-    # 
-    # 
-    # 
-    # output$gg_motiv <- renderPlot ({
-    #   pal <- rep(c("#D45855ff", "#0073C2FF", "#EFC000FF", "#656364"), 8)
-    #   df <- head(motivation_subset(), 20)
-    #   p <- ggplot(df, 
-    #               aes(label = word, size = wordcount, 
-    #                   color = factor(sample.int(10, nrow(df), replace = TRUE)))) +
-    #     geom_text_wordcloud() +
-    #     scale_size_area(max_size = 20)  +
-    #     scale_color_manual(values = head(pal,nrow(df))) +
-    #     labs(title = "Motivation for joining the network") +
-    #     theme_classic() +
-    #     theme(plot.title = element_text(size = 18))
-    #   p
-    #   #ggiraph(ggobj = p, width_svg = 7, height_svg = 7)
-    # })
-    # 
-    
-    # real time theming
+
+    # themes ----
     #bs_themer() 
     
+ #waitress$hide()
     
 }
