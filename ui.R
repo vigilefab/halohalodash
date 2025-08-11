@@ -5,7 +5,7 @@ bootstrapPage(
       # application title ----
       div(class="row",
           # controls panel --------------------------------------
-          div(class="col-md-3",
+          div(class="col-lg-3",
               div(class="well", style = "margin: 10px; z-index: 1;",
                   h1(HTML('<img src= "Halo-Halo Logo_ohne Schrift_transparent.png" width ="100px"><p>The <font color = "#0073c2">Halo</font>-<font color = "#fcba03">Halo</font> <font color = "#D45855">Dash</font>'), align = "center"),
                   
@@ -38,7 +38,7 @@ bootstrapPage(
 
                  )
         ),
-        div(class="col-md-9", 
+        div(class="col-lg-9", 
             # row with two stats, a time series of new members and map
             layout_column_wrap( 
               # column containing two stats stacked on top of time series of new members 
@@ -98,7 +98,7 @@ bootstrapPage(
                       max_height = 700,
                       full_screen = FALSE,
                       card_header("Member distribution", style="font-weight:bold; font-size:18pt; color:#D45855;"),
-                      p("Each dot is colored and sized by the number of years since they signed up. 
+                      p("Each dot is colored and sized by the number of years since a member signed up. 
                         Coordinates are slightly jittered to protect personal data."),
                       leafletOutput("scatterMap")
                     ),
