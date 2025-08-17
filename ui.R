@@ -35,15 +35,15 @@ bootstrapPage(
                  # dateRangeInput(inputId = 'date', label ='Date range:', 
                  #                min = min(as.Date(maillist$Timestamp)), max = max(as.Date(maillist$Timestamp)),
                  #                start = min(as.Date(maillist$Timestamp)), end = max(as.Date(maillist$Timestamp)))                       
-
-                 )
-        ),
-        div(class="col-lg-9", 
-            # row with two stats, a time series of new members and map
-            layout_column_wrap( 
-              # column containing two stats stacked on top of time series of new members 
-              card(style = "border:none;background-color:none;",
-                max_height = 700,
+                 
+              )
+          ),
+          div(class="col-lg-9", 
+              # row with two stats, a time series of new members and map
+              layout_column_wrap( 
+                # column containing two stats stacked on top of time series of new members 
+                card(style = "border:none;background-color:none;",
+                     max_height = 700,
                 full_screen = FALSE,
                 layout_column_wrap( 
                           # stats: members ----

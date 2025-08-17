@@ -1,5 +1,5 @@
 
-#----- PRELIMINARIES -----#
+#----- PRELIMINARIES -----
 
 # deactivate scientific notation
 options(scipen=999)
@@ -33,9 +33,9 @@ rm(list = ls())
 
 
 
-#-------------------------------------------------
-#----- Data import -----#
-#-------------------------------------------------
+#***************************
+#----- Data import -----
+#***************************
 
 # import mailing list fron google sheets
 maillist <- read_sheet("https://docs.google.com/spreadsheets/d/19bi4UudF_-MU__DELcDrZoqY9njZn30wvKcXXnLEQ08/edit?gid=243593460#gid=243593460",
@@ -49,9 +49,9 @@ maillist <- read_sheet("https://docs.google.com/spreadsheets/d/19bi4UudF_-MU__DE
 
 
 
-#-------------------------------------------------
-#----- Clean data -----#
-#-------------------------------------------------
+#***************************
+#----- Clean data -----
+#***************************
 
 # clean Postleitzahl
 maillist$plz <- str_split(maillist$Postleitzahl, pattern = "/|( und)|(bzw.)") %>% 
@@ -74,9 +74,9 @@ maillist <- maillist %>%
 
 
 
-#-------------------------------------------------
-#----- Create country groups -----#
-#-------------------------------------------------
+#***********************************
+#----- Create country groups -----
+#***********************************
 
 # create countries (with all < 2 members as Sonstige)
 maillist <- maillist %>% 
@@ -93,9 +93,9 @@ maillist <- maillist %>%
 
 
 
-#-------------------------------------------------
-#----- GIS -----#
-#-------------------------------------------------
+#***********************************
+#----- GIS -----
+#***********************************
 
 # geocode locations
 maillist <- maillist %>% 
@@ -136,9 +136,9 @@ maillist$jitter_lat <- st_coordinates(maillist2$jitter)[, 2]
 
 
 
-#-------------------------------------------------
-#----- Map Variables -----#
-#-------------------------------------------------
+#***********************************
+#----- Map Variables -----
+#***********************************
 # for entries without a timestamp, we give "2021-11-01 20:30:00"
 maillist <- maillist %>% mutate(Timestamp = mdy_hms(Timestamp)) %>%
   mutate(Timestamp = replace(Timestamp, is.na(Timestamp), mdy_hms("11012021 20:30:00")))
@@ -176,9 +176,9 @@ maillist$label <- paste("Member since", format(as.Date(maillist$Timestamp), "%B 
 
 
 
-#-------------------------------------------------
-#----- Chart Variables -----#
-#-------------------------------------------------
+#***********************************
+#----- Chart Variables -----
+#***********************************
 
 monthly <- maillist %>%
     mutate(month = format(Timestamp, "%Y-%m")) %>%
@@ -198,9 +198,9 @@ monthly <- left_join(x = allmonths, y = monthly,
 
 
 
-#-------------------------------------------------
-#----- Word Cloud Dataset -----#
-#-------------------------------------------------
+#***********************************
+#----- Word Cloud Dataset -----
+#***********************************
 
 # relevant variables
 worddat <- maillist %>% 
@@ -256,9 +256,9 @@ motivation <- worddat %>% group_by(Land, Land2, region) %>%
 
 
 
-#-------------------------------------------------
-#----- Save Datasets -----#
-#-------------------------------------------------
+#***********************************
+#----- Save Datasets -----
+#***********************************
 
 # # save to google sheets
 # sheet <- as_sheets_id("https://docs.google.com/spreadsheets/d/1KBk0gaN0qXwsLR-sW9TcBsmKMFbUoEQVptF9TlL4g18/edit?gid=1449400037#gid=1449400037")
