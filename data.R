@@ -16,12 +16,14 @@ library(magrittr)
 library(data.table)
 library(googlesheets4)
 library(tidyr)
+library(stringr)
 library(stopwords)
 library(ggwordcloud)
 library(tidytext)
 library(SnowballC)
 library(sf)
 library(tidygeocoder)
+library(purrr)
 
 
 
@@ -38,8 +40,8 @@ rm(list = ls())
 #***************************
 
 # import mailing list fron google sheets
-maillist <- read_sheet("https://docs.google.com/spreadsheets/d/19bi4UudF_-MU__DELcDrZoqY9njZn30wvKcXXnLEQ08/edit?gid=243593460#gid=243593460",
-                       sheet = "Form Responses 1") %>% 
+maillist <- read_sheet("https://docs.google.com/spreadsheets/d/1v4d88oDgYg7o7pJItpnzW9_rAAd7AjlGX1xMi-xUDNc",
+                       sheet = "Form Responses 1", col_types = "c") %>% 
   filter(Vorname != "") %>%
   select(!c("Vorname", "Nachname", "Email", "E-Mail 2")) 
 
@@ -54,10 +56,12 @@ maillist <- read_sheet("https://docs.google.com/spreadsheets/d/19bi4UudF_-MU__DE
 #***************************
 
 # clean Postleitzahl
-maillist$plz <- str_split(maillist$Postleitzahl, pattern = "/|( und)|(bzw.)") %>% 
+plz <- str_split(string = pull(maillist, Postleitzahl), pattern = "/|( und)|(bzw.)") %>% 
   do.call(what = rbind.data.frame) %>% 
-  select(1) 
+  select(1)
+maillist <- maillist %>% mutate(plz = plz[[1]])
 
+  
 
 
 # clean cities
@@ -127,7 +131,7 @@ maillist2 <- maillist %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs 
 # add jittered coordinates
 maillist$jitter_lon <- st_coordinates(maillist2$jitter)[, 1]
 maillist$jitter_lat <- st_coordinates(maillist2$jitter)[, 2]
-  
+
 
 
 
@@ -181,15 +185,15 @@ maillist$label <- paste("Member since", format(as.Date(maillist$Timestamp), "%B 
 #***********************************
 
 monthly <- maillist %>%
-    mutate(month = format(Timestamp, "%Y-%m")) %>%
-    filter(!is.na(month)) %>%
-    group_by(Land2, month) %>%
-    summarise(membr = n())
+  mutate(month = format(Timestamp, "%Y-%m")) %>%
+  filter(!is.na(month)) %>%
+  group_by(Land2, month) %>%
+  summarise(membr = n())
 
 allmonths <- expand(monthly, Land2, month) %>% distinct
 monthly <- left_join(x = allmonths, y = monthly,
-                                     by = c("Land2", "month")) %>%
-                             mutate(membr = replace(membr, is.na(membr), 0))
+                     by = c("Land2", "month")) %>%
+  mutate(membr = replace(membr, is.na(membr), 0))
 
 
 
@@ -247,7 +251,7 @@ motivation <- worddat %>% group_by(Land, Land2, region) %>%
   # rename n
   mutate(wordcount = n) 
 
-  
+
 
 
 
@@ -260,17 +264,19 @@ motivation <- worddat %>% group_by(Land, Land2, region) %>%
 #----- Save Datasets -----
 #***********************************
 
-# # save to google sheets
-# sheet <- as_sheets_id("https://docs.google.com/spreadsheets/d/1KBk0gaN0qXwsLR-sW9TcBsmKMFbUoEQVptF9TlL4g18/edit?gid=1449400037#gid=1449400037")
-# sheet_delete(sheet, list("maillist", "monthly", "motivation", "bezug"))
-# sheet_write(maillist, ss = sheet)
-# sheet_write(monthly, ss = sheet)
-# sheet_write(motivation, ss = sheet)
-# sheet_write(bezug, ss = sheet)
-# 
+# save to google sheets
+sheet <- as_sheets_id("https://docs.google.com/spreadsheets/d/1KBk0gaN0qXwsLR-sW9TcBsmKMFbUoEQVptF9TlL4g18/edit?gid=1449400037#gid=1449400037")
+sheet_delete(sheet, list("maillist", "monthly", "motivation", "bezug"))
+sheet_write(maillist, ss = sheet)
+sheet_write(monthly, ss = sheet)
+sheet_write(motivation, ss = sheet)
+sheet_write(bezug, ss = sheet)
+
 
 # save in local drive
 save(maillist, monthly, motivation, bezug, file = "data/maillist.RData")
+# load(file = "data/maillist.RData")
+
 
 # ── <googlesheets4_spreadsheet> ─────────────────────────────────────────────────
 # Spreadsheet name: halohalodash                                
