@@ -24,6 +24,7 @@ bootstrapPage(
                     we can only keep track of the growth of our network from
                     the ones who sign up. What this dashboard calls a member is therefore a person
                     who has signed up for the mailing list."),
+                  p(paste0("Last data refresh on ", format(Sys.Date(), "%B %d, %Y"), ".")),
                  style="position:sticky;",
                  # Select country ----
                  selectInput(inputId = "selected_cntry",

@@ -109,7 +109,7 @@ maillist <- maillist %>%
 
 # reverse_geocode to obtain region
 longaddress <- maillist %>%  reverse_geocode(lat = latitude , long = longitude, 
-                                             address = "osm_address", return_input = FALSE)  
+                                             address = "osm_address", return_input = FALSE)   
 region <- str_extract(longaddress$osm_address, 
                       pattern = "([A-ZÖÜÄa-züöä\\-]+, ([0-9A-Z]{4}[0-9]*|United States|Deutschland))") %>%
   str_split(pattern = ",") %>% 
@@ -121,7 +121,8 @@ maillist$region <- as.vector(region[[1]])
 # clean region
 maillist <- maillist %>% 
   mutate(region = replace(region, Postleitzahl == "", NA)) %>% # remove region if no Postleitzahl
-  mutate(region = replace(region, Land2 == "Sonstiges", Land)) # fix region so that region = Land if Land2 == sonstiges
+  mutate(region = replace(region, Land2 == "Sonstiges", Land)) %>% # fix region so that region = Land if Land2 == sonstiges
+  mutate(region = gsub(x = region, pattern = "Teltow", replacement = "Berlin")) 
 
 
 # get jittered coordinates 
